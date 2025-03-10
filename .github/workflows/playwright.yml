@@ -48,7 +48,12 @@ jobs:
         node-version: '20'
 
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm ci
+        if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+        fi
 
     - name: Install Playwright Browsers
       run: |
@@ -63,30 +68,32 @@ jobs:
 
     - name: Run Playwright tests
       run: |
-        if [ "${{ github.event.inputs.test_file }}" = "all" ]; then
-          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
-              npx playwright test --headed
+        if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+          # Utiliser xvfb-run pour le mode visuel
+          if [ "${{ github.event.inputs.test_file }}" = "all" ]; then
+            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test --headed
             else
-              npx playwright test
+              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test --headed --project=${{ github.event.inputs.browser }}
             fi
           else
-            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
-              npx playwright test --headed --project=${{ github.event.inputs.browser }}
+            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test ${{ github.event.inputs.test_file }} --headed
             else
-              npx playwright test --project=${{ github.event.inputs.browser }}
+              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test ${{ github.event.inputs.test_file }} --headed --project=${{ github.event.inputs.browser }}
             fi
           fi
         else
-          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
-              npx playwright test ${{ github.event.inputs.test_file }} --headed
+          # Mode headless normal
+          if [ "${{ github.event.inputs.test_file }}" = "all" ]; then
+            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+              npx playwright test
             else
-              npx playwright test ${{ github.event.inputs.test_file }}
+              npx playwright test --project=${{ github.event.inputs.browser }}
             fi
           else
-            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
-              npx playwright test ${{ github.event.inputs.test_file }} --headed --project=${{ github.event.inputs.browser }}
+            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+              npx playwright test ${{ github.event.inputs.test_file }}
             else
               npx playwright test ${{ github.event.inputs.test_file }} --project=${{ github.event.inputs.browser }}
             fi
