@@ -64,16 +64,32 @@ jobs:
     - name: Run Playwright tests
       run: |
         if [ "${{ github.event.inputs.test_file }}" = "all" ]; then
-          if [ "${{ github.event.inputs.headed }}" = "true" ]; then
-            npx playwright test --headed --project=${{ github.event.inputs.browser }}
+          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+              npx playwright test --headed
+            else
+              npx playwright test
+            fi
           else
-            npx playwright test --project=${{ github.event.inputs.browser }}
+            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+              npx playwright test --headed --project=${{ github.event.inputs.browser }}
+            else
+              npx playwright test --project=${{ github.event.inputs.browser }}
+            fi
           fi
         else
-          if [ "${{ github.event.inputs.headed }}" = "true" ]; then
-            npx playwright test ${{ github.event.inputs.test_file }} --headed --project=${{ github.event.inputs.browser }}
+          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+              npx playwright test ${{ github.event.inputs.test_file }} --headed
+            else
+              npx playwright test ${{ github.event.inputs.test_file }}
+            fi
           else
-            npx playwright test ${{ github.event.inputs.test_file }} --project=${{ github.event.inputs.browser }}
+            if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+              npx playwright test ${{ github.event.inputs.test_file }} --headed --project=${{ github.event.inputs.browser }}
+            else
+              npx playwright test ${{ github.event.inputs.test_file }} --project=${{ github.event.inputs.browser }}
+            fi
           fi
         fi
 
