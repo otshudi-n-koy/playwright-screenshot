@@ -1,7 +1,6 @@
 name: Playwright Tests
 
 on:
-  # Exécution manuelle depuis l'interface GitHub
   workflow_dispatch:
     inputs:
       test_file:
@@ -29,10 +28,6 @@ on:
         required: true
         type: boolean
         default: false
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   test:
@@ -68,36 +63,20 @@ jobs:
 
     - name: Run Playwright tests
       run: |
+        TEST_CMD="npx playwright test"
+        if [ "${{ github.event.inputs.test_file }}" != "all" ]; then
+          TEST_CMD="$TEST_CMD ${{ github.event.inputs.test_file }}"
+        fi
+        
+        if [ "${{ github.event.inputs.browser }}" != "all" ]; then
+          TEST_CMD="$TEST_CMD --project=${{ github.event.inputs.browser }}"
+        fi
+        
         if [ "${{ github.event.inputs.headed }}" = "true" ]; then
-          # Utiliser xvfb-run pour le mode visuel
-          if [ "${{ github.event.inputs.test_file }}" = "all" ]; then
-            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test --headed
-            else
-              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test --headed --project=${{ github.event.inputs.browser }}
-            fi
-          else
-            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test ${{ github.event.inputs.test_file }} --headed
-            else
-              xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test ${{ github.event.inputs.test_file }} --headed --project=${{ github.event.inputs.browser }}
-            fi
-          fi
+          TEST_CMD="$TEST_CMD --headed"
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" $TEST_CMD
         else
-          # Mode headless normal
-          if [ "${{ github.event.inputs.test_file }}" = "all" ]; then
-            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-              npx playwright test
-            else
-              npx playwright test --project=${{ github.event.inputs.browser }}
-            fi
-          else
-            if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-              npx playwright test ${{ github.event.inputs.test_file }}
-            else
-              npx playwright test ${{ github.event.inputs.test_file }} --project=${{ github.event.inputs.browser }}
-            fi
-          fi
+          $TEST_CMD
         fi
 
     - name: Upload test results
