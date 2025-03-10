@@ -1,6 +1,34 @@
 name: Playwright Tests
 
 on:
+  # Exécution manuelle depuis l'interface GitHub
+  workflow_dispatch:
+    inputs:
+      test_file:
+        description: 'Fichier de test à exécuter'
+        required: true
+        type: choice
+        options:
+          - 'tests/static.spec.ts'
+          - 'tests/github.spec.ts'
+          - 'tests/mdn.spec.ts'
+          - 'all'
+        default: 'all'
+      browser:
+        description: 'Navigateur à utiliser'
+        required: true
+        type: choice
+        options:
+          - 'chromium'
+          - 'firefox'
+          - 'webkit'
+          - 'all'
+        default: 'chromium'
+      headed:
+        description: 'Exécuter en mode visuel'
+        required: true
+        type: boolean
+        default: false
   push:
     branches: [ main ]
   pull_request:
@@ -23,13 +51,31 @@ jobs:
       run: npm ci
 
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      run: |
+        if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+          npx playwright install --with-deps
+        else
+          npx playwright install --with-deps ${{ github.event.inputs.browser }}
+        fi
 
     - name: Create references directory
       run: mkdir -p references
 
     - name: Run Playwright tests
-      run: npx playwright test
+      run: |
+        if [ "${{ github.event.inputs.test_file }}" = "all" ]; then
+          if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+            npx playwright test --headed --project=${{ github.event.inputs.browser }}
+          else
+            npx playwright test --project=${{ github.event.inputs.browser }}
+          fi
+        else
+          if [ "${{ github.event.inputs.headed }}" = "true" ]; then
+            npx playwright test ${{ github.event.inputs.test_file }} --headed --project=${{ github.event.inputs.browser }}
+          else
+            npx playwright test ${{ github.event.inputs.test_file }} --project=${{ github.event.inputs.browser }}
+          fi
+        fi
 
     - name: Upload test results
       if: always()
